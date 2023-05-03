@@ -1,41 +1,40 @@
 import { useEffect, useState } from "react";
 import { CharacterComponent } from "./CharacterComponent";
 
-function App() {
-  // const [username, setUsername] = useState("");
+function useQuerySwapi(path) {
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [data, setData] = useState([]);
 
+  useEffect(() => {
+    setIsLoading(true);
+    const fetchData = async () => {
+      const data = await fetch(
+        `https://swapi.dev/api/people/?search=${path}`
+      ).then((resp) => resp.json());
+
+      if (data.count > 0) {
+        setData(data.results);
+      }
+      setIsLoading(false);
+    };
+
+    const resultTimeoutId = setTimeout(fetchData, 2000);
+
+    return () => {
+      clearTimeout(resultTimeoutId);
+    };
+  }, [path]);
+
+  return { isLoading, error, data };
+}
+
+function App() {
   const [query, setQuery] = useState("");
-  const [result, setResult] = useState([]);
-  const [resultCount, setResultCount] = useState(0);
-  // const [httpQuery, setHttpQuery] = useState("");
+  const { isLoading, error, data } = useQuerySwapi(query);
 
   /** Create random prefix to easier see the different rerenders of the element */
   const randomPrefix = Math.floor(Math.random() * 900) + 100;
-
-  useEffect(() => {
-    let isAborted = false;
-
-    const getResult = async () => {
-      const data = await fetch(
-        `https://swapi.dev/api/people/?search=${query}`
-      ).then((resp) => resp.json());
-
-      if (!isAborted && data.count > 0) {
-        // if (data.count > 0) {
-        setResult(data.results);
-        setResultCount(data.count);
-      }
-    };
-
-    const timeOutID = setTimeout(getResult, 1000);
-
-    return () => {
-      isAborted = true;
-      setResult([]);
-      setResultCount(0);
-      clearTimeout(timeOutID);
-    };
-  }, [query]);
 
   return (
     <>
@@ -49,9 +48,8 @@ function App() {
         onChange={(e) => setQuery(e.target.value)}
       />
       <article>
-        <p>Results: {resultCount}</p>
-        {result.length > 0 ? (
-          result.map((res) => (
+        {!isLoading ? (
+          data.map((res) => (
             <CharacterComponent
               key={res.name}
               name={res.name}
